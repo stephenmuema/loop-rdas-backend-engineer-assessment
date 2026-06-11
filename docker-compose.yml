@@ -1,0 +1,37 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: rdas-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: ${DB_NAME:-rdas}
+      MYSQL_USER: ${DB_USERNAME:-rdas}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-rdas}
+    ports:
+      - "3306:3306"
+    volumes:
+      - rdas-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-rootpass}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  rdas:
+    build: .
+    container_name: rdas-app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_NAME: ${DB_NAME:-rdas}
+      DB_USERNAME: ${DB_USERNAME:-rdas}
+      DB_PASSWORD: ${DB_PASSWORD:-rdas}
+    ports:
+      - "8080:8080"
+
+volumes:
+  rdas-mysql-data:

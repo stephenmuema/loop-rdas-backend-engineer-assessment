@@ -1,0 +1,119 @@
+spring:
+  application:
+    name: reference-data-aggregation-service
+
+  data:
+    web:
+      pageable:
+        default-page-size: 20
+        max-page-size: 100
+        one-indexed-parameters: false
+
+  # Default datasource is file-backed H2 so the materialized catalog survives
+  # restarts even with zero external infrastructure. Override with the MySQL
+  # values below (or the `prod` profile) in container/Kubernetes deployments.
+  datasource:
+    url: jdbc:h2:file:./data/rdas
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  h2:
+    console:
+      enabled: false
+
+# --- RDAS application configuration -----------------------------------------
+rdas:
+  soap:
+    endpoint: http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso
+    connect-timeout-ms: 5000
+    read-timeout-ms: 10000
+  harvest:
+    # Run a full catalog harvest shortly after startup (only if the catalog is
+    # empty or stale) and then on a fixed schedule. Reference data changes
+    # rarely, so a daily refresh is ample.
+    run-on-startup: true
+    # Cron: every day at 02:15. Override via RDAS_HARVEST_CRON.
+    cron: "0 15 2 * * *"
+    # Consider the catalog stale (and worth refreshing on startup) after this many hours.
+    stale-after-hours: 24
+    # Pace per-country enrichment calls to stay well under the provider limit.
+    request-delay-ms: 120
+
+# --- Caching -----------------------------------------------------------------
+cache:
+  # Safety expiry; the authoritative invalidation is an evict-all after each
+  # successful harvest. Hot read responses live here between refreshes.
+  ttl-minutes: 30
+  max-size: 10000
+
+# --- Resilience4j ------------------------------------------------------------
+resilience4j:
+  circuitbreaker:
+    # Lower aspect order = more OUTER aspect. CircuitBreaker(1) wraps Retry(2)
+    # so an open breaker fast-fails without burning the retry budget.
+    circuit-breaker-aspect-order: 1
+    instances:
+      countryInfoSoap:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        register-health-indicator: true
+  retry:
+    retry-aspect-order: 2
+    instances:
+      countryInfoSoap:
+        max-attempts: 3
+        wait-duration: 500ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+  ratelimiter:
+    instances:
+      # Protects the third-party provider's 100 req/min quota. We cap ourselves
+      # below it; harvesting also paces calls (rdas.harvest.request-delay-ms).
+      countryInfoSoap:
+        limit-for-period: 90
+        limit-refresh-period: 60s
+        timeout-duration: 5s
+        register-health-indicator: false
+
+# --- Actuator / observability ------------------------------------------------
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+      group:
+        readiness:
+          # The catalog is served from the local DB, so SOAP reachability must
+          # NOT gate readiness — a SOAP outage should not eject serving pods.
+          include: readinessState,db
+        liveness:
+          include: livenessState
+  metrics:
+    tags:
+      application: reference-data-aggregation-service
+
+logging:
+  level:
+    com.loop.rdas: INFO
+    # Set to DEBUG to log SOAP request/response envelopes, TRACE for payload bodies.
+    org.springframework.ws.client.MessageTracing: WARN

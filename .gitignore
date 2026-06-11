@@ -1,0 +1,21 @@
+target/
+data/
+!.mvn/wrapper/maven-wrapper.jar
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS
+.DS_Store
+
+# Secrets / local env
+.env
+
+# Logs
+*.log

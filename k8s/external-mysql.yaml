@@ -1,0 +1,43 @@
+# External-database mode: use this INSTEAD OF mysql-deployment.yaml when the
+# database runs outside the cluster (managed instance, VM, or the host machine).
+# It maps the in-cluster name "mysql" to your external host, so the application
+# needs no changes - only DB_HOST stays "mysql".
+#
+# For a DNS-resolvable host (managed DB, or Docker Desktop host):
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: rdas
+spec:
+  type: ExternalName
+  # Docker Desktop exposes the host as host.docker.internal. For a managed DB,
+  # use its FQDN, e.g. my-db.abc123.eu-west-1.rds.amazonaws.com
+  externalName: host.docker.internal
+---
+# If your database is reachable only by IP (no DNS name), delete the Service
+# above and use a headless Service + manual EndpointSlice instead:
+#
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: mysql
+#   namespace: rdas
+# spec:
+#   clusterIP: None
+#   ports:
+#     - port: 3306
+# ---
+# apiVersion: discovery.k8s.io/v1
+# kind: EndpointSlice
+# metadata:
+#   name: mysql-1
+#   namespace: rdas
+#   labels:
+#     kubernetes.io/service-name: mysql
+# addressType: IPv4
+# ports:
+#   - port: 3306
+# endpoints:
+#   - addresses:
+#       - "192.168.1.50"   # <-- your external DB IP

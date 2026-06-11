@@ -1,0 +1,193 @@
+{
+  "info": {
+    "name": "RDAS - Reference Data Aggregation Service",
+    "description": "LOOP DFS Backend Engineer assessment. REST/JSON facade over the CountryInfo SOAP service with a materialized country catalog.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Search countries (all)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/countries?page=0&size=20&sort=name,asc",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "countries"],
+          "query": [
+            {"key": "page", "value": "0"},
+            {"key": "size", "value": "20"},
+            {"key": "sort", "value": "name,asc"}
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('has paged envelope', () => {",
+              "  const b = pm.response.json();",
+              "  pm.expect(b).to.have.property('content');",
+              "  pm.expect(b).to.have.property('totalElements');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Filter by continent",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/countries?continent=Africa&size=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "countries"],
+          "query": [
+            {"key": "continent", "value": "Africa"},
+            {"key": "size", "value": "10"}
+          ]
+        }
+      }
+    },
+    {
+      "name": "Filter by currency and language",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/countries?currency=USD&language=English",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "countries"],
+          "query": [
+            {"key": "currency", "value": "USD"},
+            {"key": "language", "value": "English"}
+          ]
+        }
+      }
+    },
+    {
+      "name": "Search by name",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/countries?name=ken",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "countries"],
+          "query": [{"key": "name", "value": "ken"}]
+        }
+      }
+    },
+    {
+      "name": "Country detail by ISO",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/countries/KE",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "countries", "KE"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.test('is Kenya with languages', () => {",
+              "  const b = pm.response.json();",
+              "  pm.expect(b.isoCode).to.eql('KE');",
+              "  pm.expect(b.languages).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Currency peers",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/countries/KE/currency-peers",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "countries", "KE", "currency-peers"]
+        }
+      }
+    },
+    {
+      "name": "Unknown country (404)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/countries/ZZ",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "countries", "ZZ"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test('404 Not Found', () => pm.response.to.have.status(404));"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invalid sort (400)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/countries?sort=hack,asc",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "countries"],
+          "query": [{"key": "sort", "value": "hack,asc"}]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test('400 Bad Request', () => pm.response.to.have.status(400));"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Continents",
+      "request": {"method": "GET", "url": {"raw": "{{baseUrl}}/api/v1/continents", "host": ["{{baseUrl}}"], "path": ["api", "v1", "continents"]}}
+    },
+    {
+      "name": "Currencies",
+      "request": {"method": "GET", "url": {"raw": "{{baseUrl}}/api/v1/currencies", "host": ["{{baseUrl}}"], "path": ["api", "v1", "currencies"]}}
+    },
+    {
+      "name": "Languages",
+      "request": {"method": "GET", "url": {"raw": "{{baseUrl}}/api/v1/languages", "host": ["{{baseUrl}}"], "path": ["api", "v1", "languages"]}}
+    },
+    {
+      "name": "Catalog status",
+      "request": {"method": "GET", "url": {"raw": "{{baseUrl}}/api/v1/admin/catalog/status", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "catalog", "status"]}}
+    },
+    {
+      "name": "Trigger refresh (202)",
+      "request": {"method": "POST", "url": {"raw": "{{baseUrl}}/api/v1/admin/catalog/refresh", "host": ["{{baseUrl}}"], "path": ["api", "v1", "admin", "catalog", "refresh"]}},
+      "event": [
+        {
+          "listen": "test",
+          "script": {"type": "text/javascript", "exec": ["pm.test('202 Accepted', () => pm.response.to.have.status(202));"]}
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "request": {"method": "GET", "url": {"raw": "{{baseUrl}}/actuator/health", "host": ["{{baseUrl}}"], "path": ["actuator", "health"]}}
+    }
+  ],
+  "variable": [{"key": "baseUrl", "value": "http://localhost:8080"}]
+}

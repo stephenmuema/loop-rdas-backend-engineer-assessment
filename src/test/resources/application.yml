@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:rdas-test;DB_CLOSE_DELAY=-1;MODE=MySQL
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+
+rdas:
+  harvest:
+    run-on-startup: false
+    request-delay-ms: 0
+
+cache:
+  ttl-minutes: 30
+  max-size: 10000
+
+logging:
+  level:
+    com.loop.rdas: WARN

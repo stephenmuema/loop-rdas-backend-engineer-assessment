@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rdas-config
+  namespace: rdas
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+  DB_HOST: "mysql"
+  DB_PORT: "3306"
+  DB_NAME: "rdas"
+  # CountryInfo SOAP service
+  RDAS_SOAP_ENDPOINT: "http://webservices.oorsprong.org/websamples.countryinfo/CountryInfoService.wso"
+  RDAS_SOAP_CONNECT_TIMEOUT_MS: "5000"
+  RDAS_SOAP_READ_TIMEOUT_MS: "10000"
+  # Catalog harvest: daily at 02:15, treat as stale after 24h
+  RDAS_HARVEST_CRON: "0 15 2 * * *"
+  RDAS_HARVEST_STALE_AFTER_HOURS: "24"
+  RDAS_HARVEST_REQUEST_DELAY_MS: "120"
